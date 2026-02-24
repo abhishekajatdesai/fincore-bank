@@ -1,0 +1,6 @@
+.git
+.idea
+target
+banking-frontend/node_modules
+banking-frontend/dist
+**/.DS_Store

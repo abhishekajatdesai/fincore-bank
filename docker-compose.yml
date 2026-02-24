@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: fincore-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: bank_db
+      MYSQL_USER: bank_user
+      MYSQL_PASSWORD: bank_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fincore-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8081
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: bank_db
+      DB_USER: bank_user
+      DB_PASSWORD: bank_password
+      JWT_SECRET: 9f44c9c0ae9b4f5ea281d79c2d48f7a9c1e61735b0f22a60dfd1c1ba9275f9d1
+      JWT_EXPIRATION: 86400000
+      JPA_DDL_AUTO: update
+      JPA_SHOW_SQL: "true"
+    ports:
+      - "8081:8081"
+
+  frontend:
+    build:
+      context: ./banking-frontend
+      dockerfile: Dockerfile
+    container_name: fincore-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql_data:

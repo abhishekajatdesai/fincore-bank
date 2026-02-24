@@ -14,6 +14,8 @@ import Register from "./pages/Register";
 import AdminAccounts from "./pages/AdminAccounts";
 import AdminAudit from "./pages/AdminAudit";
 import AdminReset from "./pages/AdminReset";
+import CustomerInvestments from "./pages/CustomerInvestments";
+import AdminLoanApprovals from "./pages/AdminLoanApprovals";
 import Navbar from "./components/layout/Navbar";
 import { AuthContext } from "./context/AuthContext";
 
@@ -76,6 +78,14 @@ export default function App() {
           }
         />
         <Route
+          path="/admin/loans"
+          element={
+            <PrivateRoute roles={["ADMIN"]}>
+              <AdminLoanApprovals />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/customer"
           element={
             <PrivateRoute roles={["CUSTOMER"]}>
@@ -88,6 +98,14 @@ export default function App() {
           element={
             <PrivateRoute roles={["CUSTOMER"]}>
               <CustomerProfile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/customer/investments"
+          element={
+            <PrivateRoute roles={["CUSTOMER"]}>
+              <CustomerInvestments />
             </PrivateRoute>
           }
         />

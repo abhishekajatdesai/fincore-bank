@@ -5,6 +5,9 @@ import { changePassword } from "../services/authService";
 export default function CustomerProfile() {
   const [profile, setProfile] = useState(null);
   const [balance, setBalance] = useState(null);
+  const [showSensitive, setShowSensitive] = useState(
+    () => window.localStorage.getItem("fincore_show_sensitive") === "true"
+  );
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -19,6 +22,21 @@ export default function CustomerProfile() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  function maskAccountNumber(value) {
+    if (!value) return "—";
+    const str = String(value);
+    if (str.length <= 4) return str;
+    return `${"x".repeat(Math.max(0, str.length - 4))}${str.slice(-4)}`;
+  }
+
+  function maskEmail(value) {
+    if (!value) return "No email";
+    const [user, domain] = value.split("@");
+    if (!domain) return "xxxxx";
+    const safeUser = user.length <= 2 ? `${user[0] || "x"}x` : `${user.slice(0, 2)}xxx`;
+    return `${safeUser}@${domain}`;
+  }
 
   useEffect(() => {
     async function load() {
@@ -47,6 +65,10 @@ export default function CustomerProfile() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("fincore_show_sensitive", String(showSensitive));
+  }, [showSensitive]);
 
   async function handleSaveProfile() {
     setLoading(true);
@@ -128,6 +150,13 @@ export default function CustomerProfile() {
               Identity, account status, and balance details.
             </p>
           </div>
+          <button
+            className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700"
+            onClick={() => setShowSensitive((prev) => !prev)}
+            type="button"
+          >
+            {showSensitive ? "Hide Details" : "View Details"}
+          </button>
         </div>
 
         {error && (
@@ -151,15 +180,18 @@ export default function CustomerProfile() {
                 <div className="text-lg font-semibold text-slate-900">
                   {profile?.customer?.name || "Customer Name"}
                 </div>
-                <div className="text-sm text-slate-500">
-                  {profile?.customer?.email || "customer@email.com"}
+                <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                  <span>{showSensitive ? (profile?.customer?.email || "customer@email.com") : maskEmail(profile?.customer?.email)}</span>
                 </div>
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {[
-                { label: "Account Number", value: profile?.accountNumber || "—" },
+                {
+                  label: "Account Number",
+                  value: maskAccountNumber(profile?.accountNumber)
+                },
                 { label: "Account Type", value: profile?.accountType || "—" }
               ].map((item) => (
                 <div
@@ -211,7 +243,7 @@ export default function CustomerProfile() {
               Balance Overview
             </div>
             <div className="mt-4 text-3xl font-semibold text-slate-900">
-              {balance ?? "—"}
+              {showSensitive ? (balance ?? "—") : "xxxxx"}
             </div>
             <div className="mt-2 text-sm text-slate-500">
               Last updated just now

@@ -1,6 +1,8 @@
 package com.fincore.bank.service;
 import com.fincore.bank.dto.AccountSummaryResponse;
 import com.fincore.bank.dto.AdminStatsResponse;
+import com.fincore.bank.dto.LoanApprovalRequest;
+import com.fincore.bank.dto.LoanRejectRequest;
 import com.fincore.bank.dto.ApiResponse;
 import com.fincore.bank.dto.CreateCustomerRequest;
 import com.fincore.bank.dto.OtpResponse;
@@ -26,10 +28,23 @@ public class AdminService {
     private final UserRepository userRepo;
     private final TransactionRepository txRepo;
     private final AuditLogRepository auditRepo;
+    private final LoanAccountRepository loanRepo;
     private final Map<String, OtpEntry> passwordOtps = new ConcurrentHashMap<>();
     private final Map<Long, OtpEntry> pinOtps = new ConcurrentHashMap<>();
-    public AdminService(CustomerRepository cr, AccountRepository ar, UserRepository ur, TransactionRepository tr, AuditLogRepository auditRepo){
-        this.customerRepo=cr;this.accountRepo=ar;this.userRepo=ur;this.txRepo=tr;this.auditRepo=auditRepo;
+    public AdminService(
+            CustomerRepository cr,
+            AccountRepository ar,
+            UserRepository ur,
+            TransactionRepository tr,
+            AuditLogRepository auditRepo,
+            LoanAccountRepository loanRepo
+    ){
+        this.customerRepo=cr;
+        this.accountRepo=ar;
+        this.userRepo=ur;
+        this.txRepo=tr;
+        this.auditRepo=auditRepo;
+        this.loanRepo=loanRepo;
     }
 
     @Transactional
@@ -92,6 +107,77 @@ public class AdminService {
         return auditRepo.findTop50ByOrderByCreatedAtDesc();
     }
 
+    public List<LoanAccount> getPendingLoanRequests() {
+        return loanRepo.findByStatusOrderByIdDesc(LoanAccount.Status.PENDING);
+    }
+
+    @Transactional
+    public LoanAccount approveLoan(int loanId, LoanApprovalRequest req, String actor) {
+        LoanAccount loan = loanRepo.findById(loanId).orElseThrow(() -> new RuntimeException("Loan request not found"));
+        if (loan.getStatus() != LoanAccount.Status.PENDING) {
+            throw new RuntimeException("Only pending loan can be approved");
+        }
+        if (req.getInterestRate() <= 0) throw new RuntimeException("Interest rate must be greater than zero");
+
+        int tenure = req.getTenureMonths() != null && req.getTenureMonths() > 0 ? req.getTenureMonths() : loan.getTenureMonths();
+        double emi = calculateEmi(loan.getPrincipalAmount(), req.getInterestRate(), tenure);
+
+        loan.setInterestRate(req.getInterestRate());
+        loan.setTenureMonths(tenure);
+        loan.setEmiAmount(Math.round(emi * 100.0) / 100.0);
+        if (loan.getOutstandingAmount() <= 0) {
+            loan.setOutstandingAmount(loan.getPrincipalAmount());
+        }
+        if (loan.getTotalRepaid() < 0) {
+            loan.setTotalRepaid(0);
+        }
+        loan.setStatus(LoanAccount.Status.APPROVED);
+        loan.setApprovedAt(new Timestamp(System.currentTimeMillis()));
+        loan.setApprovedBy(actor);
+        loan.setDecisionNote(req.getNote());
+        loanRepo.save(loan);
+
+        Account acc = accountRepo.findById(loan.getAccountNumber()).orElseThrow(() -> new RuntimeException("Account not found"));
+        acc.setBalance(acc.getBalance() + loan.getPrincipalAmount());
+        accountRepo.save(acc);
+
+        Transaction tx = new Transaction();
+        tx.setAccountNumber(loan.getAccountNumber());
+        tx.setTxType("LOAN_CREDIT");
+        tx.setAmount(loan.getPrincipalAmount());
+        tx.setDescription("Loan approved and disbursed, loanId=" + loan.getId());
+        txRepo.save(tx);
+
+        AuditLog log = new AuditLog();
+        log.setAction("Loan approved");
+        log.setActor(actor);
+        log.setStatus("Success");
+        log.setDetail("Loan " + loan.getId() + " approved for account " + loan.getAccountNumber());
+        auditRepo.save(log);
+        return loan;
+    }
+
+    @Transactional
+    public LoanAccount rejectLoan(int loanId, LoanRejectRequest req, String actor) {
+        LoanAccount loan = loanRepo.findById(loanId).orElseThrow(() -> new RuntimeException("Loan request not found"));
+        if (loan.getStatus() != LoanAccount.Status.PENDING) {
+            throw new RuntimeException("Only pending loan can be rejected");
+        }
+        loan.setStatus(LoanAccount.Status.REJECTED);
+        loan.setApprovedAt(new Timestamp(System.currentTimeMillis()));
+        loan.setApprovedBy(actor);
+        loan.setDecisionNote(req.getNote());
+        loanRepo.save(loan);
+
+        AuditLog log = new AuditLog();
+        log.setAction("Loan rejected");
+        log.setActor(actor);
+        log.setStatus("Success");
+        log.setDetail("Loan " + loan.getId() + " rejected for account " + loan.getAccountNumber());
+        auditRepo.save(log);
+        return loan;
+    }
+
     public OtpResponse initiatePasswordReset(String username){
         User user = userRepo.findByUsername(username);
         if(user==null){
@@ -147,6 +233,13 @@ public class AdminService {
     private String generateOtp(){
         int code = ThreadLocalRandom.current().nextInt(100000, 999999);
         return String.valueOf(code);
+    }
+
+    private double calculateEmi(double principal, double annualRate, int months) {
+        double monthlyRate = annualRate / 1200.0;
+        if (monthlyRate == 0) return principal / months;
+        double factor = Math.pow(1 + monthlyRate, months);
+        return principal * monthlyRate * factor / (factor - 1);
     }
 
     private static class OtpEntry {

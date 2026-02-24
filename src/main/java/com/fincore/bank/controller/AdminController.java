@@ -1,6 +1,7 @@
 package com.fincore.bank.controller;
 import com.fincore.bank.dto.*;
 import com.fincore.bank.entity.AuditLog;
+import com.fincore.bank.entity.LoanAccount;
 import com.fincore.bank.service.AdminService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,6 +33,23 @@ public class AdminController {
     @GetMapping("/audit")
     public List<AuditLog> audit(){
         return adminService.getAuditLogs();
+    }
+
+    @GetMapping("/loans/pending")
+    public List<LoanAccount> pendingLoans() {
+        return adminService.getPendingLoanRequests();
+    }
+
+    @PostMapping("/loans/{loanId}/approve")
+    public LoanAccount approveLoan(@PathVariable int loanId, @RequestBody LoanApprovalRequest req){
+        String actor = SecurityContextHolder.getContext().getAuthentication().getName();
+        return adminService.approveLoan(loanId, req, actor);
+    }
+
+    @PostMapping("/loans/{loanId}/reject")
+    public LoanAccount rejectLoan(@PathVariable int loanId, @RequestBody LoanRejectRequest req){
+        String actor = SecurityContextHolder.getContext().getAuthentication().getName();
+        return adminService.rejectLoan(loanId, req, actor);
     }
 
     @PostMapping("/reset-password/initiate")

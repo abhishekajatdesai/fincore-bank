@@ -8,8 +8,26 @@ export default function CustomerDashboard() {
   const [account, setAccount] = useState(null);
   const [balance, setBalance] = useState(null);
   const [activity, setActivity] = useState([]);
+  const [showSensitive, setShowSensitive] = useState(
+    () => window.localStorage.getItem("fincore_show_sensitive") === "true"
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  function maskAccountNumber(value) {
+    if (!value) return "—";
+    const str = String(value);
+    if (str.length <= 4) return str;
+    return `${"x".repeat(Math.max(0, str.length - 4))}${str.slice(-4)}`;
+  }
+
+  function maskEmail(value) {
+    if (!value) return "No email";
+    const [user, domain] = value.split("@");
+    if (!domain) return "xxxxx";
+    const safeUser = user.length <= 2 ? `${user[0] || "x"}x` : `${user.slice(0, 2)}xxx`;
+    return `${safeUser}@${domain}`;
+  }
 
   useEffect(() => {
     async function load() {
@@ -36,22 +54,33 @@ export default function CustomerDashboard() {
     load();
   }, []);
 
+  useEffect(() => {
+    window.localStorage.setItem("fincore_show_sensitive", String(showSensitive));
+  }, [showSensitive]);
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex flex-col gap-6">
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-3xl bg-[linear-gradient(135deg,#0f172a,#1e3a8a)] p-8 shadow-xl">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-slate-900">
+              <h1 className="text-2xl font-semibold text-white">
                 Customer Dashboard
               </h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-slate-200">
                 View balances and initiate transactions quickly.
               </p>
             </div>
-            <div className="text-sm text-slate-500">
-              Account: {accountNo || "—"}
+            <div className="text-sm text-slate-200">
+              Account: {maskAccountNumber(accountNo || account?.accountNumber)}
             </div>
+            <button
+              className="rounded-full border border-white/40 bg-white/10 px-3 py-1 text-xs font-semibold text-white"
+              onClick={() => setShowSensitive((prev) => !prev)}
+              type="button"
+            >
+              {showSensitive ? "Hide Details" : "View Details"}
+            </button>
           </div>
 
           {error && (
@@ -67,7 +96,7 @@ export default function CustomerDashboard() {
               Current Balance
             </div>
             <div className="mt-4 text-3xl font-semibold text-slate-900">
-              {balance ?? "—"}
+              {showSensitive ? (balance ?? "—") : "xxxxx"}
             </div>
             <div className="mt-2 text-sm text-slate-500">Live ledger</div>
           </div>
@@ -90,13 +119,14 @@ export default function CustomerDashboard() {
               {account?.customer?.name || "—"}
             </div>
             <div className="mt-2 text-sm text-slate-500">
-              {account?.customer?.email || "No email"}
+              {showSensitive ? (account?.customer?.email || "No email") : maskEmail(account?.customer?.email)}
             </div>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
           {[
+            { label: "FD & Loans", to: "/customer/investments" },
             { label: "Transfer", to: "/transfer" },
             { label: "Transactions", to: "/transactions" }
           ].map((item) => (
@@ -117,7 +147,10 @@ export default function CustomerDashboard() {
             </h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {[
-                { label: "Account Number", value: account?.accountNumber || accountNo },
+                {
+                  label: "Account Number",
+                  value: maskAccountNumber(account?.accountNumber || accountNo)
+                },
                 { label: "Branch", value: account?.branch || "Main Branch" },
                 { label: "IFSC", value: account?.ifsc || "FINC0001" },
                 { label: "Opened", value: account?.openedAt || "—" }

@@ -58,6 +58,7 @@ export default function Navbar() {
                 <NavItem to="/admin" label="Admin" />
                 <NavItem to="/create-customer" label="Create Customer" />
                 <NavItem to="/admin/accounts" label="Accounts" />
+                <NavItem to="/admin/loans" label="Loan Approvals" />
                 <NavItem to="/admin/reset" label="Reset Access" />
                 <NavItem to="/admin/audit" label="Audit Log" />
               </>
@@ -65,6 +66,7 @@ export default function Navbar() {
               <>
                 <NavItem to="/customer" label="Overview" />
                 <NavItem to="/customer/profile" label="Profile" />
+                <NavItem to="/customer/investments" label="FD & Loans" />
                 <NavItem to="/transfer" label="Transfer" />
                 <NavItem to="/transactions" label="Transactions" />
               </>

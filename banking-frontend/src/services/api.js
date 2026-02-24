@@ -1,8 +1,8 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 const API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
-const API_BASE = `${API_BASE_URL}${API_PREFIX}`;
+const API_BASE = API_BASE_URL ? `${API_BASE_URL}${API_PREFIX}` : API_PREFIX;
 
 const AUTH_TOKEN_KEY = "fincore_token";
 

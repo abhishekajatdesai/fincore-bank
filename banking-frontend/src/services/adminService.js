@@ -42,3 +42,18 @@ export async function confirmPinReset(payload) {
   const { data } = await api.post("/admin/reset-pin/confirm", payload);
   return data;
 }
+
+export async function getPendingLoanRequests() {
+  const { data } = await api.get("/admin/loans/pending");
+  return data;
+}
+
+export async function approveLoan(loanId, payload) {
+  const { data } = await api.post(`/admin/loans/${loanId}/approve`, payload);
+  return data;
+}
+
+export async function rejectLoan(loanId, payload) {
+  const { data } = await api.post(`/admin/loans/${loanId}/reject`, payload);
+  return data;
+}
