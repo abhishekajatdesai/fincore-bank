@@ -1,16 +1,74 @@
-# React + Vite
+# Banking Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React frontend for the Fincore Bank application.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React 19
+- Vite
+- React Router
+- Axios
+- Tailwind CSS
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Role selection landing page
+- Separate admin and customer login
+- Customer registration
+- Admin dashboard and account operations
+- Customer dashboard, profile, transfer, and transaction views
+- Fixed deposit and loan sections
+- JWT-based authenticated API calls
 
-## Expanding the ESLint configuration
+## Run Locally
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+cd /Users/abhishekajatdesai/fincore-bank/banking-frontend
+npm install
+npm run dev
+```
+
+Default dev URL:
+
+- `http://localhost:5173`
+
+## Build
+
+```bash
+npm run build
+```
+
+## Preview Production Build
+
+```bash
+npm run preview
+```
+
+## API Integration
+
+The frontend uses `/api` as the default API prefix.
+
+- In local development, Vite proxies `/api` to the Spring Boot backend.
+- In Docker and Kubernetes, nginx forwards `/api` requests to the backend service.
+
+## Main Pages
+
+- `/`
+- `/admin-login`
+- `/customer-login`
+- `/register`
+- `/admin`
+- `/admin/accounts`
+- `/admin/audit`
+- `/admin/reset`
+- `/admin/loans`
+- `/customer`
+- `/customer/profile`
+- `/customer/investments`
+- `/transfer`
+- `/transactions`
+
+## Source
+
+- Main router: [App.jsx](/Users/abhishekajatdesai/fincore-bank/banking-frontend/src/App.jsx)
+- API layer: [api.js](/Users/abhishekajatdesai/fincore-bank/banking-frontend/src/services/api.js)
